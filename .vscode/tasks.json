@@ -1,0 +1,10 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run in test_project",
+            "type": "shell",
+            "command": "cd ./test_project && cargo run",
+        }
+    ]
+}
