@@ -1,5 +1,5 @@
 use anyhow::{Context, Ok, Result};
-use mdbook::book::{Chapter, Link, Summary, SummaryItem};
+use mdbook::book::{Chapter, Link, SectionNumber, Summary, SummaryItem};
 use mdbook::config::Config;
 use mdbook::{BookItem, MDBook};
 use pulldown_cmark::{Options, Parser, Tag, TagEnd, TextMergeStream};
@@ -23,7 +23,7 @@ struct ColeusConfig {
 fn main() -> Result<()> {
     let mdbook_dir = Path::new("./build/mdbook").to_path_buf();
 
-    create_book_dir(&mdbook_dir)?;
+    // create_book_dir(&mdbook_dir)?;
 
     let config_toml = fs::read_to_string(Path::new("./coleus.toml"))
         .with_context(|| "Unable to read coleus.toml")?;
@@ -43,6 +43,7 @@ fn main() -> Result<()> {
     cfg.build.build_dir = Path::new("../book").to_path_buf();
 
     let md = MDBook::load_with_config_and_summary(mdbook_dir, cfg, summary)?;
+
 
     md.build()?;
 
@@ -88,6 +89,7 @@ struct BookHierarchy {
 
 struct BookCategoryEntry {
     pub title: String,
+    pub category_link: Link,
     pub links: Vec<(Link, u32)>,
 }
 
@@ -124,10 +126,8 @@ fn create_book_hierarchy(src_dir: &PathBuf) -> Result<BookHierarchy> {
             category,
             BookCategoryEntry {
                 title: metadata.title.clone(),
-                links: vec![(
-                    Link::new(metadata.title, &link_path),
-                    metadata.ordinal.unwrap_or(0),
-                )],
+                category_link: Link::new(metadata.title, &link_path),
+                links: vec![],
             },
         );
     }
@@ -146,24 +146,34 @@ fn create_summary(hierarchy: &mut BookHierarchy) -> Result<Summary> {
 
     let mut sorted_links = hierarchy.uncategorized.clone();
     sorted_links.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-    println!("{:?}", sorted_links);
 
     for (link, _) in sorted_links {
         summary
-            .numbered_chapters
+            .prefix_chapters
             .push(SummaryItem::Link(link.clone()))
     }
 
-    for BookCategoryEntry { title, links } in hierarchy.categorized.values() {
+    for (category_index, BookCategoryEntry { title, category_link, links }) in hierarchy.categorized.values().enumerate() {
+        // add category title
         summary
             .numbered_chapters
             .push(SummaryItem::PartTitle(title.clone()));
+        
+        // add main category page
+        let mut category_link = category_link.clone();
+        category_link.number = Some(SectionNumber(vec![(category_index + 1).try_into().unwrap()]));
 
+        summary
+            .numbered_chapters
+            .push(SummaryItem::Link(category_link));
+
+        // add other pages in category
         let mut sorted_links = links.clone();
         sorted_links.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        println!("{:?}", sorted_links);
 
-        for (link, _) in sorted_links {
+        for (chapter_index, (mut link, _)) in sorted_links.into_iter().enumerate() {
+            link.number = Some(SectionNumber(vec![(category_index + 1).try_into().unwrap(), (chapter_index + 1).try_into().unwrap()]));
+
             summary
                 .numbered_chapters
                 .push(SummaryItem::Link(link.clone()))
@@ -205,13 +215,13 @@ fn add_entries(
                 if entries.is_some() {
                     entries.unwrap().links.push((
                         Link::new(metadata.title, link_path),
-                        metadata.ordinal.unwrap_or(0),
+                        metadata.ordinal.unwrap_or(u32::max_value()),
                     ))
                 }
             } else {
                 hierarchy
                     .uncategorized
-                    .push((Link::new(metadata.title, link_path), metadata.ordinal.unwrap_or(0)))
+                    .push((Link::new(metadata.title, link_path), metadata.ordinal.unwrap_or(u32::max_value())))
             }
         }
     }
