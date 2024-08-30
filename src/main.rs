@@ -2,9 +2,14 @@ use anyhow::{Context, Ok, Result};
 use mdbook::book::{Chapter, Link, Summary, SummaryItem};
 use mdbook::config::Config;
 use mdbook::{BookItem, MDBook};
+use pulldown_cmark::{Options, Parser, Tag, TagEnd, TextMergeStream};
+use regex::Regex;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{Read, Write};
+use std::iter::Sum;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
@@ -18,19 +23,20 @@ struct ColeusConfig {
 fn main() -> Result<()> {
     let mdbook_dir = Path::new("./build/mdbook").to_path_buf();
 
-
     create_book_dir(&mdbook_dir)?;
 
-    let config_toml = fs::read_to_string(Path::new("./coleus.toml")).with_context(|| "Unable to read coleus.toml")?;
+    let config_toml = fs::read_to_string(Path::new("./coleus.toml"))
+        .with_context(|| "Unable to read coleus.toml")?;
     let coleus_config: ColeusConfig = toml::from_str(&config_toml)?;
     let book_name = coleus_config.name.as_str();
 
     let book_path = Path::new(coleus_config.path.as_str()).to_path_buf();
 
-
     copy_book_pages(&mdbook_dir, &book_path, book_name)?;
 
-    let summary: Summary = create_summary(& mdbook_dir.join(Path::new("src")), book_name)?;
+    let mut book_hierarchy = create_book_hierarchy(&mdbook_dir.join("src"))?;
+
+    let summary: Summary = create_summary(&mut book_hierarchy)?;
 
     let mut cfg = Config::default();
     cfg.book.title = Some("My Book".to_string());
@@ -51,7 +57,7 @@ fn main() -> Result<()> {
 
 fn create_book_dir(mdbook_dir: &PathBuf) -> Result<()> {
     let src_dir = mdbook_dir.join(Path::new("src"));
-    
+
     if src_dir.exists() {
         fs::remove_dir_all(&mdbook_dir).with_context(|| "Unable to delete delete mdbook dir")?;
     }
@@ -69,17 +75,33 @@ fn copy_book_pages(mdbook_dir: &PathBuf, book_dir: &PathBuf, book_name: &str) ->
     let categories_dir = book_dir.join(Path::new(&format!("categories/{book_name}")));
     dircpy::copy_dir(categories_dir, src_dir.join("categories"))?;
 
-
     let entries_dir = book_dir.join(Path::new(&format!("entries/{book_name}")));
     dircpy::copy_dir(entries_dir, src_dir.join("entries"))?;
 
     Ok(())
-    
 }
 
+struct BookHierarchy {
+    pub categorized: HashMap<String, BookCategoryEntry>,
+    pub uncategorized: Vec<(Link, u32)>,
+}
 
-fn create_summary(src_dir: &PathBuf, book_name: &str) -> Result<Summary> {
-    let mut summary = Summary::default();
+struct BookCategoryEntry {
+    pub title: String,
+    pub links: Vec<(Link, u32)>,
+}
+
+impl BookHierarchy {
+    pub fn new() -> BookHierarchy {
+        return BookHierarchy {
+            categorized: HashMap::new(),
+            uncategorized: Vec::new(),
+        };
+    }
+}
+
+fn create_book_hierarchy(src_dir: &PathBuf) -> Result<BookHierarchy> {
+    let mut hierarchy = BookHierarchy::new();
 
     let categories_dir = src_dir.join(Path::new(&format!("categories")));
     for file in fs::read_dir(&categories_dir)? {
@@ -89,69 +111,141 @@ fn create_summary(src_dir: &PathBuf, book_name: &str) -> Result<Summary> {
         let file_path = categories_dir.join(&file_name);
         let link_path = Path::new("categories").join(&file_name);
 
-        summary.numbered_chapters.push(SummaryItem::Link(Link::new(file_path.to_str().unwrap(), &link_path)))
-    };
+        let metadata: CategoryMetadata = get_page_metadata(&fs::read_to_string(&file_path)?)?;
 
-    let entries_dir = src_dir.join(Path::new(&format!("entries")));
+        let category = file_name
+            .into_string()
+            .expect("file name could not be read")
+            .strip_suffix(".md")
+            .unwrap()
+            .to_string();
+
+        hierarchy.categorized.insert(
+            category,
+            BookCategoryEntry {
+                title: metadata.title.clone(),
+                links: vec![(
+                    Link::new(metadata.title, &link_path),
+                    metadata.ordinal.unwrap_or(0),
+                )],
+            },
+        );
+    }
+
+    add_entries(
+        src_dir,
+        &src_dir.join(Path::new(&format!("entries"))),
+        &mut hierarchy,
+    )?;
+
+    Ok(hierarchy)
+}
+
+fn create_summary(hierarchy: &mut BookHierarchy) -> Result<Summary> {
+    let mut summary = Summary::default();
+
+    let mut sorted_links = hierarchy.uncategorized.clone();
+    sorted_links.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    println!("{:?}", sorted_links);
+
+    for (link, _) in sorted_links {
+        summary
+            .numbered_chapters
+            .push(SummaryItem::Link(link.clone()))
+    }
+
+    for BookCategoryEntry { title, links } in hierarchy.categorized.values() {
+        summary
+            .numbered_chapters
+            .push(SummaryItem::PartTitle(title.clone()));
+
+        let mut sorted_links = links.clone();
+        sorted_links.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        println!("{:?}", sorted_links);
+
+        for (link, _) in sorted_links {
+            summary
+                .numbered_chapters
+                .push(SummaryItem::Link(link.clone()))
+        }
+    }
 
     Ok(summary)
 }
 
-// fn create_book_dir() -> Result<()> {
-//     let current_dir = env::current_dir().expect("could not get working directory");
+fn add_entries(
+    src_dir: &PathBuf,
+    entries_dir: &PathBuf,
+    hierarchy: &mut BookHierarchy,
+) -> Result<(), anyhow::Error> {
+    for dir_entry in fs::read_dir(entries_dir).unwrap() {
+        let dir_entry = dir_entry.unwrap();
 
-//     let mdbook_dir = current_dir.join(Path::new("build/mdbook"));
-    
-//     let src_dir = mdbook_dir.join(Path::new("src"));
+        if dir_entry.metadata().unwrap().is_dir() {
+            add_entries(src_dir, &dir_entry.path(), hierarchy).unwrap()
+        } else if dir_entry
+            .file_name()
+            .into_string()
+            .expect("could not read file name")
+            .ends_with(".md")
+        {
+            let file = dir_entry;
 
-//     if src_dir.exists() {
-//         fs::remove_dir_all(&mdbook_dir).with_context(|| "Unable to delete delete mdbook dir")?;
-//     }
+            let file_path = file.path();
+            let link_path = file_path.strip_prefix(src_dir).unwrap();
 
-//     fs::create_dir_all(&src_dir)?;
+            let metadata: EntryMetadata =
+                get_page_metadata(&fs::read_to_string(&file_path).unwrap()).unwrap();
 
-//     let mut cfg = Config::default();
-//     cfg.book.title = Some("My Book".to_string());
-//     cfg.build.build_dir = Path::new("../book").to_path_buf();
+            if metadata.category.is_some() {
+                let entries = hierarchy
+                    .categorized
+                    .get_mut(metadata.category.unwrap().split(":").collect::<Vec<_>>()[1]);
 
-//     create_test(&src_dir)?;
+                if entries.is_some() {
+                    entries.unwrap().links.push((
+                        Link::new(metadata.title, link_path),
+                        metadata.ordinal.unwrap_or(0),
+                    ))
+                }
+            } else {
+                hierarchy
+                    .uncategorized
+                    .push((Link::new(metadata.title, link_path), metadata.ordinal.unwrap_or(0)))
+            }
+        }
+    }
 
-//     let mut summary = Summary::default();
-//     summary.numbered_chapters.push(SummaryItem::Link(Link::new("test", "chapter_2.md")));
+    Ok(())
+}
 
+fn get_page_metadata<'a, T: Deserialize<'a>>(page: &'a str) -> Result<T> {
+    //regex to get the json in a code block
+    let regex = Regex::new(r"``` *json\n?((\n|.)*)```").unwrap();
 
+    let json_str = regex
+        .captures_iter(page)
+        .next()
+        .expect("no match found")
+        .get(1)
+        .expect("no match found")
+        .as_str();
 
-//     let md = MDBook::load_with_config_and_summary(mdbook_dir, cfg, summary)?;
+    return serde_json::from_str(json_str).with_context(|| "could not decode json");
+}
 
-//     md.build().with_context(|| "Building failed")?;
-//     Ok(())
-// }
+#[derive(Deserialize)]
+struct CategoryMetadata {
+    title: String,
+    icon: Option<String>,
+    ordinal: Option<u32>,
+    parent: Option<String>,
+}
 
-// fn create_summary_md(src_dir: &PathBuf) -> Result<()> {
-//     let summary_path = src_dir.join(Path::new("SUMMARY.md"));
-
-//     if summary_path.exists() {
-//         fs::remove_file(&summary_path).with_context(|| "Unable to delete delete summary file")?;
-//     }
-
-//     let mut f = File::create(&summary_path).with_context(|| "Unable to create SUMMARY.md")?;
-//     writeln!(f, "# Summary")?;
-//     writeln!(f)?;
-//     writeln!(f, "- [Chapter 2](./chapter_2.md)")?;
-
-//     return Ok(());
-// }
-
-// fn create_test(src_dir: &PathBuf) -> Result<()> {
-//     let test_path = src_dir.join(Path::new("chapter_2.md"));
-
-//     if test_path.exists() {
-//         fs::remove_file(&test_path).with_context(|| "Unable to delete delete summary file")?;
-//     }
-
-//     let mut f = File::create(&test_path).with_context(|| "Unable to create SUMMARY.md")?;
-//     writeln!(f, "# this is a test")?;
-
-//     return Ok(());
-// }
-
+#[derive(Deserialize)]
+struct EntryMetadata {
+    title: String,
+    icon: Option<String>,
+    ordinal: Option<u32>,
+    category: Option<String>,
+}
