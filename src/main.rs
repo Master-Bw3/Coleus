@@ -1,4 +1,5 @@
 use anyhow::{Context, Ok, Result};
+use coleus::config::ColeusConfig;
 use coleus::preprocessor::Coleus;
 use mdbook::book::{Chapter, Link, SectionNumber, Summary, SummaryItem};
 use mdbook::config::Config;
@@ -14,12 +15,7 @@ use std::iter::Sum;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
-#[derive(Deserialize, Debug)]
-struct ColeusConfig {
-    name: String,
-    path: String,
-    lang_path: String,
-}
+
 
 fn main() -> Result<()> {
     let mdbook_dir = Path::new("./build/mdbook").to_path_buf();
@@ -45,7 +41,7 @@ fn main() -> Result<()> {
 
     let mut md = MDBook::load_with_config_and_summary(mdbook_dir, cfg, summary)?;
 
-    md.with_preprocessor(Coleus);
+    md.with_preprocessor(Coleus::new(coleus_config));
 
     md.build()?;
 
