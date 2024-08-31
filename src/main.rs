@@ -1,4 +1,5 @@
 use anyhow::{Context, Ok, Result};
+use coleus::preprocessor::Coleus;
 use mdbook::book::{Chapter, Link, SectionNumber, Summary, SummaryItem};
 use mdbook::config::Config;
 use mdbook::{BookItem, MDBook};
@@ -23,7 +24,7 @@ struct ColeusConfig {
 fn main() -> Result<()> {
     let mdbook_dir = Path::new("./build/mdbook").to_path_buf();
 
-    // create_book_dir(&mdbook_dir)?;
+    create_book_dir(&mdbook_dir)?;
 
     let config_toml = fs::read_to_string(Path::new("./coleus.toml"))
         .with_context(|| "Unable to read coleus.toml")?;
@@ -42,8 +43,9 @@ fn main() -> Result<()> {
     cfg.book.title = Some("My Book".to_string());
     cfg.build.build_dir = Path::new("../book").to_path_buf();
 
-    let md = MDBook::load_with_config_and_summary(mdbook_dir, cfg, summary)?;
+    let mut md = MDBook::load_with_config_and_summary(mdbook_dir, cfg, summary)?;
 
+    md.with_preprocessor(Coleus);
 
     md.build()?;
 
