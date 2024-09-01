@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use anyhow::{Context, Error, Result};
 use mdbook::{
@@ -6,6 +6,8 @@ use mdbook::{
     preprocess::{self, Preprocessor, PreprocessorContext},
     BookItem,
 };
+use path_slash::PathBufExt;
+use pathdiff::diff_paths;
 use pulldown_cmark::{Event, Parser};
 use pulldown_cmark_to_cmark::cmark;
 use regex::Regex;
@@ -109,14 +111,18 @@ impl Coleus {
             let page = &captures["page"].split("/").last().unwrap();
             let anchor = &captures.name("anchor").map(|x| x.as_str());
 
-            let path = page_map.get(&page.to_string());
+            let path = diff_paths(
+                page_map.get(&page.to_string()).unwrap(),
+                chapter.path.clone().unwrap().parent().unwrap(),
+            );
+
             let path = path
-                .map(|x| x.display().to_string())
+                .map(|x| x.to_slash().unwrap().to_string())
                 .unwrap_or(String::new());
 
             chapter.content = chapter.content.replace(
                 &captures[0],
-                &format!("[{name}](/{path}{})", anchor.unwrap_or("")),
+                &format!("[{name}]({path}{})", anchor.unwrap_or("")),
             )
         }
 
