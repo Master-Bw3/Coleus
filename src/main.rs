@@ -1,6 +1,6 @@
 use anyhow::{Context, Ok, Result};
 use coleus::config::ColeusConfig;
-use coleus::preprocessor::Coleus;
+use coleus::preprocessor::preprocessor::Coleus;
 use mdbook::book::{Chapter, Link, SectionNumber, Summary, SummaryItem};
 use mdbook::config::Config;
 use mdbook::{BookItem, MDBook};

@@ -6,10 +6,14 @@ use mdbook::{
     preprocess::{self, Preprocessor, PreprocessorContext},
     BookItem,
 };
+use pulldown_cmark::{Event, Parser};
+use pulldown_cmark_to_cmark::cmark;
 use regex::Regex;
 use serde::Deserialize;
 
 use crate::config::ColeusConfig;
+
+use super::parser::{strip_metadata, PageMetadata};
 
 pub struct Coleus {
     config: ColeusConfig,
@@ -43,41 +47,31 @@ impl Coleus {
     }
 
     fn preprocess_chapter(&self, sections: &Vec<BookItem>, chapter: &mut mdbook::book::Chapter) {
-        // get json metadata
-        let json_regex = Regex::new(r"``` *json\n?((\n|.)*)```").unwrap();
-
-        let json_str = json_regex
-            .captures_iter(&chapter.content)
-            .next()
-            .expect("no match found")
-            .get(1)
-            .expect("no match found")
-            .as_str();
-
-        let metadata: PageMetadata = serde_json::from_str(json_str).unwrap();
-
-        // remove json metadata
-
-        chapter.content = json_regex.replace(&chapter.content, "").to_string();
+        // get json metadata and remove it
+        let (metadata, content) = strip_metadata(&chapter.content).unwrap();
+        chapter.content = content;
 
         // add title to page
-
         chapter.content = format!("# {}\n{}", metadata.title, chapter.content);
 
         // replace page breaks with page anchors
+
+        let parser = Parser::new(&chapter.content);
+
         let mut page_index = 0;
-
-        chapter.content = chapter
-            .content
-            .split(";;;;;")
-            .map(|slice| {
+        let mapped = parser.map(|event| match event {
+            Event::Text(text) if text.to_string() == ";;;;;" => {
                 page_index += 1;
-                format!("<a id=\"{page_index}\"></a>\n{slice}")
-            })
-            .collect::<Vec<String>>()
-            .join("");
+                Event::InlineHtml(format!("<a id=\"{page_index}\"></a>").into())
+            }
+            _ => event,
+        });
 
-        // fix linked pages
+        let mut buf = String::new();
+
+        chapter.content = cmark(mapped, &mut buf).map(|_| buf).unwrap();
+
+        // fix linked pagest
         let link_regex = Regex::new(
             &(r"\[(?<name>[^\]]*)\]\(\^".to_owned()
                 + &self.config.id
@@ -120,8 +114,6 @@ impl Coleus {
                 .map(|x| x.display().to_string())
                 .unwrap_or(String::new());
 
-            println!("{:?}", anchor);
-
             chapter.content = chapter.content.replace(
                 &captures[0],
                 &format!("[{name}](/{path}{})", anchor.unwrap_or("")),
@@ -133,9 +125,4 @@ impl Coleus {
 
         // remap owo-ui xml
     }
-}
-
-#[derive(Deserialize)]
-struct PageMetadata {
-    title: String,
 }
