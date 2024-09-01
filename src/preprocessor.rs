@@ -58,7 +58,7 @@ impl Coleus {
 
         // remove json metadata
 
-        chapter.content = json_regex.replace_all(&chapter.content, "").to_string();
+        chapter.content = json_regex.replace(&chapter.content, "").to_string();
 
         // add title to page
 
