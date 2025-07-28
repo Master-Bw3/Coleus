@@ -1,0 +1,44 @@
+<!DOCTYPE html><html style="	--base00: #282828;
+	--base01: #3c3836;
+	--base02: #504945;
+	--base03: #665c54;
+	--base04: #bdae93;
+	--base05: #d5c4a1;
+	--base06: #ebdbb2;
+	--base07: #fbf1c7;
+	--base08: #fb4934;
+	--base09: #fe8019;
+	--base0A: #fabd2f;
+	--base0B: #b8bb26;
+	--base0C: #8ec07c;
+	--base0D: #83a598;
+	--base0E: #d3869b;
+	--base0F: #d65d0e;
+"><head><script is:inline>let themeCSS = JSON.parse(localStorage.getItem("themeCSS"))
+if (themeCSS !== null) {
+    for (const entry of themeCSS) {
+        document.documentElement.style.setProperty(`--${entry[0]}`, `#${entry[1]}`);
+    }
+}</script><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="assets/style.css"><script type="module" src="assets/coleus.js" data-assetspath="assets" data-path="b_category.html" id="search-script"></script><link rel="stylesheet" href="assets/lavender-flower/coleus/lavender-flower.css"></head><body><div id="sidebar" data-toggled="true"><ol style="list-style-type: none"><a href="index.html">The Book
+Volume 69</a></ol><ol style="list-style-type: none"><li><div><a href="a_category.html"><strong>1 </strong>A Category</a><ol style="list-style-type: none"><li><a href="entry_from_another_world.html"><strong>1.1  </strong>Entry from Another World</a></li><li><a href="profound_page.html"><strong>1.2  </strong>A Profound Page With a Long Name</a></li></ol></div></li><li><div><a href="another_category.html"><strong>2 </strong>Another Category</a></div></li><li><div><a id="current-page" href="b_category.html"><strong>3 </strong><strong>B Category</strong></a><ol style="list-style-type: none"><li><a href="profounder_pagee.html"><strong>3.1  </strong>A Profounder Page With a Long Name</a></li></ol></div></li><li><div><a href="epic_category.html"><strong>4 </strong>Epic Category</a><ol style="list-style-type: none"><li><a href="entry_from_another_world.html"><strong>4.1  </strong>Entry from Another World</a></li><li><a href="page.html"><strong>4.2  </strong>Extension</a></li></ol></div></li></ol></div><div id="outer-page"><div class="toolbar"><button onclick="const btn = this;
+const sidebar = document.getElementById(&#x27;sidebar&#x27;);
+const toggled = sidebar.dataset.toggled === &#x27;true&#x27;;
+sidebar.dataset.toggled = toggled ? &#x27;false&#x27; : &#x27;true&#x27;;" aria-label="toggle menu" id="menu-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+   <!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+   <path d="M0 96C0 78.3 14.3 64 32 64l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 128C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32L32 448c-17.7 0-32-14.3-32-32s14.3-32 32-32l384 0c17.7 0 32 14.3 32 32z"/>
+</svg></button><button id="search-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+   <!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+   <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/>
+</svg></button><select id="theme-select"><option value="coleus:apathy" autocomplete="off">apathy</option><option value="coleus:ashes" autocomplete="off">ashes</option><option value="coleus:atelierdune" autocomplete="off">atelier dune</option><option value="coleus:atelierforest" autocomplete="off">atelier forest</option><option value="coleus:atelierheath" autocomplete="off">atelier heath</option><option value="coleus:atelierlakeside" autocomplete="off">atelier lakeside</option><option value="coleus:atelierseaside" autocomplete="off">atelier seaside</option><option value="coleus:bespin" autocomplete="off">bespin</option><option value="coleus:brewer" autocomplete="off">brewer</option><option value="coleus:bright" autocomplete="off">bright</option><option value="coleus:chalk" autocomplete="off">chalk</option><option value="coleus:codeschool" autocomplete="off">codeschool</option><option value="coleus:colors" autocomplete="off">colors</option><option value="coleus:cupertino" autocomplete="off">cupertino</option><option value="coleus:default" autocomplete="off">default</option><option value="coleus:defaultlight" autocomplete="off">default light</option><option value="coleus:eighties" autocomplete="off">eighties</option><option value="coleus:embers" autocomplete="off">embers</option><option value="coleus:flat" autocomplete="off">flat</option><option value="coleus:google" autocomplete="off">google</option><option value="coleus:grayscale" autocomplete="off">grayscale</option><option value="coleus:greenscreen" autocomplete="off">green screen</option><option value="lavender-flower:gruvbox" selected autocomplete="off">gruvbox</option><option value="coleus:harmonic" autocomplete="off">harmonic16</option><option value="coleus:hopscotch" autocomplete="off">hopscotch</option><option value="coleus:isotope" autocomplete="off">isotope</option><option value="coleus:tube" autocomplete="off">london tube</option><option value="coleus:marrakesh" autocomplete="off">marrakesh</option><option value="coleus:mocha" autocomplete="off">mocha</option><option value="coleus:monokai" autocomplete="off">monokai</option><option value="coleus:ocean" autocomplete="off">ocean</option><option value="coleus:paraiso" autocomplete="off">paraiso</option><option value="coleus:pop" autocomplete="off">pop</option><option value="coleus:railscasts" autocomplete="off">railscasts</option><option value="coleus:shapeshifter" autocomplete="off">shapeshifter</option><option value="coleus:solarized" autocomplete="off">solarized</option><option value="coleus:summerfruit" autocomplete="off">summerfruit</option><option value="coleus:threezerotwofour" autocomplete="off">threezerotwofour</option><option value="coleus:tomorrow" autocomplete="off">tomorrow</option><option value="coleus:twilight" autocomplete="off">twilight</option></select></div><div id="page"><main><h1>B Category</h1><div><p>that&#x27;s a category</p></div><div id="mobile-page-nav"><form id="prev-page-mobile" action="another_category.html"><label><input type="submit"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+    <!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+    <path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/>
+</svg></label></form><form id="next-page-mobile" action="profounder_pagee.html"><label><input type="submit"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+    <!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+    <path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/>
+</svg></label></form></div></main></div><form id="prev-page" action="another_category.html"><label><input type="submit"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+    <!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+    <path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/>
+</svg></label></form><form id="next-page" action="profounder_pagee.html"><label><input type="submit"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+    <!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+    <path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/>
+</svg></label></form></div></body></html>
