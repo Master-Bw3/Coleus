@@ -244,6 +244,8 @@ internal class HtmlBookGenerator(private val book: Book) {
             head(
                 loadThemeScript(),
                 meta()
+                    .attr("charset", "utf-8"),
+                meta()
                     .withName("viewport")
                     .attr("content", "width=device-width,initial-scale=1"),
                 link()
