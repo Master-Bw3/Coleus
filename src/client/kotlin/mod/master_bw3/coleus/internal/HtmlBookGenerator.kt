@@ -85,8 +85,10 @@ internal class HtmlBookGenerator(private val book: Book) {
             orderedPages.add(Page(category.id, category.title, category.content, path))
 
             book.entriesByCategory(category)?.sortedWith(entryComparator)?.forEach { entry ->
-                val path = bookDir.resolve("${entry.id.path}.html")
-                orderedPages.add(Page(entry.id, entry.title, entry.content, path))
+                if (!entry.secret) {
+                    val path = bookDir.resolve("${entry.id.path}.html")
+                    orderedPages.add(Page(entry.id, entry.title, entry.content, path))
+                }
             }
         }
 
@@ -321,7 +323,7 @@ internal class HtmlBookGenerator(private val book: Book) {
 
     private fun buildEntryList(ol: OlTag, entries: Collection<Entry>, currentPage: Identifier, categoryIndex: Int? = null): OlTag {
         return ol.with(
-            entries.sortedWith(entryComparator).mapIndexed { index, entry ->
+            entries.filter { !it.secret }.sortedWith(entryComparator).mapIndexed { index, entry ->
                 li(
                     buildPageLink(entry.id, entry.title, currentPage, categoryIndex, index)
                 )
