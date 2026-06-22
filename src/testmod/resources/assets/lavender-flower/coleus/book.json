@@ -1,10 +1,15 @@
 {
-  "css": ["lavender-flower:coleus/lavender-flower.css"],
+  "css": [
+    "lavender-flower:coleus/lavender-flower.css"
+  ],
   "themes": [
     {
       "id": "lavender-flower:gruvbox",
       "location": "lavender-flower:coleus/gruvbox.json"
     }
   ],
-  "default_theme": "lavender-flower:gruvbox"
+  "default_theme": "lavender-flower:gruvbox",
+  "spoiler_advancements": [
+    "minecraft:adventure/adventuring_time"
+  ]
 }

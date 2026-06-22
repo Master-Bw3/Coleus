@@ -64,6 +64,10 @@ internal class HtmlBookGenerator(private val book: Book) {
        }.getOrNull()
     }
 
+    private val spoilerAdvancements: List<Identifier>
+        get() = config?.spoiler_advancements?.map(Identifier::of) ?: listOf()
+
+
     internal fun generate(): Path {
         bookDir.toFile().deleteRecursively()
         includeThemes()
@@ -72,28 +76,28 @@ internal class HtmlBookGenerator(private val book: Book) {
 
         book.landingPage()?.let { entry ->
             val path = bookDir.resolve("index.html")
-            orderedPages.add(Page(entry.id, entry.title, entry.content, path))
+            orderedPages.add(Page(entry.id, entry.title, entry.content, entry.requiredAdvancements, path))
         }
 
         book.entries().filter { it.categories.isEmpty() }.sortedWith(entryComparator).forEach { entry ->
             val path = bookDir.resolve("${entry.id.path}.html")
-            orderedPages.add(Page(entry.id, entry.title, entry.content, path))
+            orderedPages.add(Page(entry.id, entry.title, entry.content, entry.requiredAdvancements, path))
         }
 
         book.categories().sortedWith(categoryComparator).forEach { category ->
             val path = bookDir.resolve("${category.id.path}.html")
-            orderedPages.add(Page(category.id, category.title, category.content, path))
+            orderedPages.add(Page(category.id, category.title, category.content, setOf(), path))
 
             book.entriesByCategory(category)?.sortedWith(entryComparator)?.forEach { entry ->
                 if (!entry.secret) {
                     val path = bookDir.resolve("${entry.id.path}.html")
-                    orderedPages.add(Page(entry.id, entry.title, entry.content, path))
+                    orderedPages.add(Page(entry.id, entry.title, entry.content, entry.requiredAdvancements,path))
                 }
             }
         }
 
         orderedPages.forEachIndexed { index, page ->
-            generatePage(page.id, page.title, page.content, page.path,
+            generatePage(page.id, page.title, page.content, page.requiredAdvancements, page.path,
                 orderedPages.getOrNull(index-1)?.path, orderedPages.getOrNull(index+1)?.path)
         }
 
@@ -160,7 +164,7 @@ internal class HtmlBookGenerator(private val book: Book) {
     }
 
 
-    private fun generatePage(id: Identifier, title: String, content: String, path: Path, prevPage: Path?, nextPage: Path?) {
+    private fun generatePage(id: Identifier, title: String, content: String, requiredAdvancements: Set<Identifier>, path: Path, prevPage: Path?, nextPage: Path?) {
         val pageContext: PageContext = object : PageContext {
             override fun addSearchEntry(searchEntry: SearchEntry) = this@HtmlBookGenerator.addSearchEntry(searchEntry)
 
@@ -177,6 +181,7 @@ internal class HtmlBookGenerator(private val book: Book) {
         var defaultThemeIdentifier = config?.default_theme?.let(Identifier::of)
         var defaultTheme: Base16Theme?
 
+        val isSpoiler = spoilerAdvancements.any(requiredAdvancements::contains)
 
         if (defaultThemeIdentifier != null) {
             defaultTheme = ThemeRegistry[defaultThemeIdentifier]
@@ -219,6 +224,7 @@ internal class HtmlBookGenerator(private val book: Book) {
             ),
         )
 
+
         val page = div().withId("page")
         val main = main(
             h1(title),
@@ -230,6 +236,10 @@ internal class HtmlBookGenerator(private val book: Book) {
         )
         page.with(main)
         outerPage.with(page)
+
+        if (isSpoiler) {
+            page.withClass("spoiler").attr("data-identifier", id)
+        }
 
         //page switch buttons
         prevPage?.let { outerPage.with(
@@ -258,7 +268,7 @@ internal class HtmlBookGenerator(private val book: Book) {
                     .withSrc("${assetDir.resolve("coleus.js").relativeTo(path.parent)}")
                     .attr("data-assetspath", assetDir.relativeTo(path.parent).toString())
                     .attr("data-path", path.relativeTo(bookDir).toString())
-                    .withId("search-script")
+                    .withId("coleus-script")
             ).with(extraCSS(id)),
             body().with(
                 sidebar(id).withId("sidebar").attr("data-toggled", "true"),
@@ -326,9 +336,13 @@ internal class HtmlBookGenerator(private val book: Book) {
     private fun buildEntryList(ol: OlTag, entries: Collection<Entry>, currentPage: Identifier, categoryIndex: Int? = null): OlTag {
         return ol.with(
             entries.filter { !it.secret }.sortedWith(entryComparator).mapIndexed { index, entry ->
-                li(
-                    buildPageLink(entry.id, entry.title, currentPage, categoryIndex, index)
-                )
+                val link = buildPageLink(entry.id, entry.title, currentPage, categoryIndex, index)
+
+                if (spoilerAdvancements.any {entry.requiredAdvancements.contains(it)}) {
+                    link.withClass("spoiler").attr("data-identifier", entry.id)
+                }
+
+                li(link)
             })
     }
 
@@ -439,5 +453,5 @@ internal class HtmlBookGenerator(private val book: Book) {
         searchEntries.add(searchEntry)
     }
 
-    private class Page(val id: Identifier, val title: String, val content: String, val path: Path)
+    private class Page(val id: Identifier, val title: String, val content: String, val requiredAdvancements: Set<Identifier>, val path: Path)
 }

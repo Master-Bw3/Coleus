@@ -292,6 +292,14 @@ mark {
   font-weight: 800;
 }
 
+li .spoiler {
+    filter: blur(0.2em);
+}
+
+li .spoiler:hover {
+    filter: none;
+}
+
 .item-spotlight {
   display: flex;
   width: 100%;
