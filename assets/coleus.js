@@ -17,8 +17,37 @@ const db = create({
 
 
 window.addEventListener("load", () => {
-    let assetsUrl = document.getElementById("search-script").dataset.assetspath
-    let pageUrl = document.getElementById("search-script").dataset.path
+    // spoiler stuff
+    document.styleSheets[0].insertRule(
+      ".spoiler { filter: blur(0.35em) !important; cursor: pointer; }"
+    );
+    document.styleSheets[0].insertRule(
+      "li .spoiler, li .spoiler:hover { filter: blur(0.2em) !important; cursor: pointer; }"
+    );
+
+    document.querySelectorAll(".spoiler").forEach(element => {
+      const id = element.dataset.identifier;
+      const stored = JSON.parse(localStorage.getItem("spoiled") || "[]");
+      if (stored.includes(id)) {
+        element.classList.remove("spoiler");
+      } else {
+        element.addEventListener("click", (event) => {
+          event.preventDefault();
+          const id = element.dataset.identifier;
+          document
+            .querySelectorAll(`[data-identifier="${id}"]`)
+            .forEach(el => el.classList.remove("spoiler"));
+          // save to local storage
+          const stored = new Set(JSON.parse(localStorage.getItem("spoiled") || "[]"));
+          stored.add(id);
+          localStorage.setItem("spoiled", JSON.stringify([...stored]));
+        }, { once: true });
+      }
+    });
+
+    // search stuff
+    let assetsUrl = document.getElementById("coleus-script").dataset.assetspath
+    let pageUrl = document.getElementById("coleus-script").dataset.path
 
 
     fetch(assetsUrl + '/searchEntries.json')
